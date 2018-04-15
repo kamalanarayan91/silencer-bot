@@ -4,28 +4,35 @@ from discord.ext import commands
 
 import asyncio
 import discord
-import logging
 import os
+import logging
 
-logging.basicConfig(level=logging.INFO)
+
+logging.basicConfig(
+    format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
+    handlers=[
+        logging.FileHandler("./silencer.log"),
+        logging.StreamHandler()
+    ],
+    level=logging.INFO)
 
 SILENCER_BOT_TOKEN = os.environ['SILENCER_BOT_TOKEN']
-GOD_ROLE_IDS = ["434852173436813313"]
+GOD_ROLE_IDS = ["434852173436813313", "433302636364562443"]
 MUTE_SECONDS = 60
 
 client = commands.Bot(command_prefix = "!")
+logging.info("WTF")
 
 def can_mute(user):
     """
     Checks if the user is allowed to mute
     """
     muter_role_ids = [role.id for role in user.roles]
-    logging.info(muter_role_ids)
 
     for id in muter_role_ids:
         if id in GOD_ROLE_IDS:
             return True
-    logging.info("cannot mute! {}".format(user.id))
+    logging.info("This user cannot mute! {}".format(user.name))
     return False
 
 @client.event
@@ -38,7 +45,6 @@ async def on_message(message):
 
     # Server Mutes a user specified for a certain time
     if lower_case_content.startswith('!shutup'):
-
         logging.info("Received mute command from {}".format(message.author))
         args = message.content.split(" ")
         muter = message.author
@@ -49,7 +55,6 @@ async def on_message(message):
 
         mutee = args[1] # Yes, I will ignore the rest of your arguments
         mutee = mutee[2:-1] # Remove the '<@' and '>'
-        logging.info(mutee)
 
         # Check if the muter has required permissions
         if can_mute(muter) == False:
@@ -58,7 +63,9 @@ async def on_message(message):
 
         # Find the mutee
         mutee = message.server.get_member(mutee)
-        logging.info("Muting {} initiated by {}".format(mutee.display_name, muter.name))
+        if mutee is None:
+            return
+        logging.info("Muting {} initiated by {}".format(mutee.display_name, muter.display_name))
 
         await client.send_message(message.channel, "Casting last word on <@{}> ".format(mutee.id))
 
@@ -73,7 +80,6 @@ async def on_message(message):
         logging.info("Received ping command from {}".format(message.author))
         command_user_id = message.author.id
         await client.send_message(message.channel, "<@{}> Pong!".format(command_user_id))
-
 
 client.run(SILENCER_BOT_TOKEN)
 
